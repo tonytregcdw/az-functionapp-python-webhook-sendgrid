@@ -1,2 +1,2 @@
-azure-functions==1.11.0
-sendgrid==6.10.0
+azure-functions
+sendgrid
