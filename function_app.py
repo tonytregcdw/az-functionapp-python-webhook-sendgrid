@@ -2,8 +2,7 @@ import azure.functions as func
 import logging
 import json
 import os
-import sendgrid
-from sendgrid.helpers.mail import Mail
+import requests
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -81,17 +80,35 @@ def send_email_via_sendgrid(event_data):
         # Use the entire request body as email content
         email_content = json.dumps(event_data, indent=2)
         
-        # Create SendGrid message
-        message = Mail(
-            from_email=from_address,
-            to_emails=to_address,
-            subject=subject,
-            plain_text_content=email_content
-        )
+        # SendGrid API endpoint
+        sendgrid_url = "https://api.sendgrid.com/v3/mail/send"
+        
+        # Prepare email data
+        email_data = {
+            "personalizations": [{
+                "to": [{"email": to_address}],
+                "subject": subject
+            }],
+            "from": {"email": from_address},
+            "content": [{
+                "type": "text/plain",
+                "value": email_content
+            }]
+        }
+        
+        # Prepare headers
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         
         # Send email
-        sg = sendgrid.SendGridAPIClient(api_key=api_key)
-        response = sg.send(message)
+        response = requests.post(sendgrid_url, headers=headers, json=email_data)
+        
+        if response.status_code >= 400:
+            error_msg = f"SendGrid API error: {response.status_code} - {response.text}"
+            logging.error(error_msg)
+            return func.HttpResponse(error_msg, status_code=500)
         
         logging.info(f'Email sent successfully. Status code: {response.status_code}')
         return func.HttpResponse(

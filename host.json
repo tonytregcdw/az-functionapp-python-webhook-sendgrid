@@ -12,5 +12,8 @@
         "excludedTypes": "Request"
       }
     }
+  },
+  "python": {
+    "version": "3.12"
   }
 }
