@@ -1,5 +1,9 @@
 import azure.functions as func
 import logging
+import json
+import os
+import sendgrid
+from sendgrid.helpers.mail import Mail
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
