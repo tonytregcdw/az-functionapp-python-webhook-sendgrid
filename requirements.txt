@@ -1,2 +1,2 @@
-azure-functions
-sendgrid
+azure-functions>=1.11.0
+sendgrid>=6.9.0
