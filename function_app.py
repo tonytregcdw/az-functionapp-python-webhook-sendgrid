@@ -2,7 +2,9 @@ import azure.functions as func
 import logging
 import json
 import os
-import requests
+import urllib.request
+import urllib.parse
+import urllib.error
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -102,19 +104,32 @@ def send_email_via_sendgrid(event_data):
             "Content-Type": "application/json"
         }
         
-        # Send email
-        response = requests.post(sendgrid_url, headers=headers, json=email_data)
+        # Send email using urllib (built-in)
+        data = json.dumps(email_data).encode('utf-8')
         
-        if response.status_code >= 400:
-            error_msg = f"SendGrid API error: {response.status_code} - {response.text}"
+        req = urllib.request.Request(
+            sendgrid_url,
+            data=data,
+            headers=headers,
+            method='POST'
+        )
+        
+        try:
+            with urllib.request.urlopen(req) as response:
+                status_code = response.getcode()
+                logging.info(f'Email sent successfully. Status code: {status_code}')
+                return func.HttpResponse(
+                    f"Email sent successfully. Status: {status_code}",
+                    status_code=200
+                )
+        except urllib.error.HTTPError as e:
+            error_msg = f"SendGrid API error: {e.code} - {e.read().decode('utf-8')}"
             logging.error(error_msg)
             return func.HttpResponse(error_msg, status_code=500)
-        
-        logging.info(f'Email sent successfully. Status code: {response.status_code}')
-        return func.HttpResponse(
-            f"Email sent successfully. Status: {response.status_code}",
-            status_code=200
-        )
+        except urllib.error.URLError as e:
+            error_msg = f"Network error: {str(e)}"
+            logging.error(error_msg)
+            return func.HttpResponse(error_msg, status_code=500)
         
     except Exception as e:
         error_msg = f"Failed to send email: {str(e)}"
